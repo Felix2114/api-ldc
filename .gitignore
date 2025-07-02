@@ -1,0 +1,11 @@
+# Ignorar dependencias y configuraciones locales
+node_modules/
+package-lock.json
+.env
+.vscode/
+
+# Ignorar logs y archivos temporales
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
