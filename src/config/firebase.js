@@ -8,6 +8,8 @@ if (!process.env.FIREBASE_PRIVATE_KEY) {
 }
 
 if (!admin.apps.length) {
+    console.log("PEM clave privada:", process.env.FIREBASE_PRIVATE_KEY.slice(0, 50));
+
     admin.initializeApp({
         credential: admin.credential.cert({
             type: process.env.FIREBASE_TYPE,
