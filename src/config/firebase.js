@@ -9,6 +9,8 @@ if (!process.env.FIREBASE_CONFIG_JSON) {
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+  // Convierte los saltos de línea escapados a saltos de línea reales
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 } catch (error) {
   console.error("Error parsing FIREBASE_CONFIG_JSON:", error);
   process.exit(1);
