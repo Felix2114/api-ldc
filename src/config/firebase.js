@@ -1,3 +1,4 @@
+require("dotenv").config();
 const admin = require("firebase-admin");
 
 if (!process.env.FIREBASE_CONFIG_JSON) {
@@ -5,14 +6,24 @@ if (!process.env.FIREBASE_CONFIG_JSON) {
   process.exit(1);
 }
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+} catch (error) {
+  console.error("Error parsing FIREBASE_CONFIG_JSON:", error);
+  process.exit(1);
+}
+
+console.log('PEM private_key sample:', serviceAccount.private_key.slice(0, 50));
+console.log('Has real new lines:', serviceAccount.private_key.includes('\n'));
+console.log('Has escaped new lines:', serviceAccount.private_key.includes('\\n'));
 
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
+    databaseURL: serviceAccount.databaseURL,
   });
 }
 
 const db = admin.firestore();
-
 module.exports = { admin, db };
