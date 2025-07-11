@@ -8,7 +8,8 @@ const {
     modificarProductos,
     marcarPedidoComoEntregado,
     marcarPedidoComoFinalizado,
-    obtenerPedidosPorEntrega
+    obtenerPedidosPorEntrega,
+    marcarPedidoComoGuardado
 } = require("../controllers/pedidoController");
 
 // GET /pedidos/estado/pendiente
@@ -31,5 +32,7 @@ router.get("/entregado/pendientes", obtenerPedidosPorEntrega);
 
 
 router.put("/:id/finalizar", marcarPedidoComoFinalizado);
+
+router.put("/:id/guardar", marcarPedidoComoGuardado);
 
 module.exports = router;

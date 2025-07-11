@@ -385,6 +385,29 @@ async function marcarPedidoComoFinalizado(req, res) {
 }
 
 
+// Marcar pedido como guardado
+async function marcarPedidoComoGuardado(req, res) {
+    try {
+        const { id } = req.params;
+
+        const pedidoRef = db.collection("pedidos").doc(id);
+        const pedidoSnap = await pedidoRef.get();
+
+        if (!pedidoSnap.exists) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        await pedidoRef.update({ guardado: true });
+
+        res.json({ message: "Pedido marcado como guardado" });
+
+    } catch (error) {
+        console.error("❌ Error al marcar como guardado:", error);
+        res.status(500).json({ error: "Error al marcar el pedido como guardado" });
+    }
+}
+
+
 
 
 module.exports = {
@@ -395,5 +418,6 @@ module.exports = {
     modificarProductos,
     marcarPedidoComoEntregado,
     marcarPedidoComoFinalizado,
-    obtenerPedidosPorEntrega
+    obtenerPedidosPorEntrega,
+    marcarPedidoComoGuardado
 };
