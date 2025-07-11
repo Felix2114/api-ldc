@@ -389,6 +389,7 @@ async function marcarPedidoComoFinalizado(req, res) {
 async function marcarPedidoComoGuardado(req, res) {
     try {
         const { id } = req.params;
+        const { metodo_Pago } = req.body;  // Leer metodo_Pago desde el body
 
         const pedidoRef = db.collection("pedidos").doc(id);
         const pedidoSnap = await pedidoRef.get();
@@ -397,7 +398,11 @@ async function marcarPedidoComoGuardado(req, res) {
             return res.status(404).json({ error: "Pedido no encontrado" });
         }
 
-        await pedidoRef.update({ guardado: true });
+        // Actualizar guardado y metodo_Pago (solo si existe metodo_Pago)
+        const updateData = { guardado: true };
+        if (metodo_Pago) updateData.metodo_Pago = metodo_Pago;
+
+        await pedidoRef.update(updateData);
 
         res.json({ message: "Pedido marcado como guardado" });
 
@@ -406,6 +411,7 @@ async function marcarPedidoComoGuardado(req, res) {
         res.status(500).json({ error: "Error al marcar el pedido como guardado" });
     }
 }
+
 
 
 
