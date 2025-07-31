@@ -158,7 +158,7 @@ async function confirmarPedido(req, res) {
     }
 }
 
-// Eliminar un pedido
+/////////////////////7 Eliminar un pedido
 async function eliminarPedido(req, res) {
     try {
         const { id } = req.params;
@@ -169,6 +169,8 @@ async function eliminarPedido(req, res) {
             return res.status(404).json({ error: "Pedido no encontrado" });
         }
 
+        const pedidoData = pedidoDoc.data();
+
         // Eliminar todos los productos en la subcolección "productos"
         const productosSnapshot = await db.collection("pedidos").doc(id).collection("productos").get();
         const productosBatch = productosSnapshot.docs.map(prod => prod.ref.delete());
@@ -177,12 +179,32 @@ async function eliminarPedido(req, res) {
         // Eliminar el pedido principal
         await db.collection("pedidos").doc(id).delete();
 
+        const mesaNumero = pedidoData.mesaId;
+
+        const mesaSnapshot = await db.collection("mesas")
+            .where("numero", "==", parseInt(mesaNumero))
+            .limit(1)
+            .get();
+
+        if (!mesaSnapshot.empty) {
+            const mesaDoc = mesaSnapshot.docs[0];
+            await mesaDoc.ref.update({ disponible: true });
+        } else {
+            console.warn(`⚠️ No se encontró ninguna mesa con numero ${mesaNumero}`);
+        }
+
+
         res.json({ message: "Pedido eliminado exitosamente" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Error al eliminar el pedido" });
     }
 }
+
+
+
+
+
 async function modificarProductos(req, res) {
     try {
         const { id } = req.params;
