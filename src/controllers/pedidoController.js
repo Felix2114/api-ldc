@@ -169,7 +169,7 @@ async function eliminarPedido(req, res) {
             return res.status(404).json({ error: "Pedido no encontrado" });
         }
 
-        const pedidoData = pedidoDoc.data();
+        const pedidoData = pedidoRef.data();
 
         // Eliminar todos los productos en la subcolección "productos"
         const productosSnapshot = await db.collection("pedidos").doc(id).collection("productos").get();
