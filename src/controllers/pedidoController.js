@@ -344,6 +344,7 @@ async function marcarPedidoComoEntregado(req, res) {
     }
 }
 
+
 async function marcarPedidoComoFinalizado(req, res) {
     try {
         const { id } = req.params;
@@ -357,34 +358,10 @@ async function marcarPedidoComoFinalizado(req, res) {
 
         const pedidoData = pedidoDoc.data();
 
-        // 1. Obtener productos del pedido
-        const productosSnap = await pedidoDocRef.collection("productos").get();
-        const productos = productosSnap.docs.map(doc => doc.data());
-
-        // 2. Buscar y actualizar bebidas en el inventario
-        for (const prod of productos) {
-            const inventarioSnap = await db.collection("inventario")
-                .where("nombre", "==", prod.nombre)
-                .limit(1)
-                .get();
-
-            if (!inventarioSnap.empty) {
-                const bebidaDoc = inventarioSnap.docs[0];
-                const bebidaData = bebidaDoc.data();
-                const nuevoStock = (bebidaData.stock || 0) - prod.cantidad;
-
-                await bebidaDoc.ref.update({
-                    stock: nuevoStock < 0 ? 0 : nuevoStock
-                });
-
-                console.log(`✅ Stock actualizado: ${prod.nombre} -${prod.cantidad}`);
-            }
-        }
-
-        // 3. Marcar el pedido como "listo"
+        // Marcar el pedido como "listo"
         await pedidoDocRef.update({ estado: "listo" });
 
-        // 4. Liberar la mesa
+        // Liberar la mesa
         const mesaNumero = pedidoData.mesaId;
 
         const mesaSnapshot = await db.collection("mesas")
@@ -399,7 +376,8 @@ async function marcarPedidoComoFinalizado(req, res) {
             console.warn(`⚠️ No se encontró ninguna mesa con numero ${mesaNumero}`);
         }
 
-        res.json({ message: "Pedido finalizado, mesa liberada y stock de bebidas actualizado." });
+        res.json({ message: "Pedido finalizado y mesa liberada." });
+
     } catch (error) {
         console.error("❌ Error al finalizar pedido:", error);
         res.status(500).json({ error: "Error al finalizar pedido" });
@@ -407,11 +385,12 @@ async function marcarPedidoComoFinalizado(req, res) {
 }
 
 
+
 // Marcar pedido como guardado
 async function marcarPedidoComoGuardado(req, res) {
     try {
         const { id } = req.params;
-        const { metodo_Pago } = req.body;  // Leer metodo_Pago desde el body
+        const { metodo_Pago } = req.body;
 
         const pedidoRef = db.collection("pedidos").doc(id);
         const pedidoSnap = await pedidoRef.get();
@@ -420,13 +399,63 @@ async function marcarPedidoComoGuardado(req, res) {
             return res.status(404).json({ error: "Pedido no encontrado" });
         }
 
-        // Actualizar guardado y metodo_Pago (solo si existe metodo_Pago)
+        // Actualizar guardado y metodo_Pago
         const updateData = { guardado: true };
         if (metodo_Pago) updateData.metodo_Pago = metodo_Pago;
-
         await pedidoRef.update(updateData);
 
-        res.json({ message: "Pedido marcado como guardado" });
+        // Obtener productos del pedido
+        const productosSnap = await pedidoRef.collection("productos").get();
+        const productos = productosSnap.docs.map(doc => doc.data());
+
+        for (const prod of productos) {
+            let bebidasADescontar = [];
+
+            const nombreProd = prod.nombre.toUpperCase();
+
+            if (nombreProd.includes("MICHELADA")) {
+                // Detectar bebida base
+                const posiblesBases = ["VICTORIA", "CORONA", "PACIFICO"];
+                const bebidaBase = posiblesBases.find(base => nombreProd.includes(base));
+
+                if (bebidaBase) {
+                    const cantidadBase = nombreProd.includes("MEGA") ? 2 : 1;
+                    bebidasADescontar.push({
+                        nombre: bebidaBase,
+                        cantidad: cantidadBase * prod.cantidad
+                    });
+                }
+            } else {
+                bebidasADescontar.push({
+                    nombre: prod.nombre,
+                    cantidad: prod.cantidad
+                });
+            }
+
+            // Descontar del inventario
+            for (const bebida of bebidasADescontar) {
+                const inventarioSnap = await db.collection("inventario")
+                    .where("nombre", "==", bebida.nombre)
+                    .limit(1)
+                    .get();
+
+                if (!inventarioSnap.empty) {
+                    const bebidaDoc = inventarioSnap.docs[0];
+                    const bebidaData = bebidaDoc.data();
+                    const nuevoStock = (bebidaData.stock || 0) - bebida.cantidad;
+
+                    await bebidaDoc.ref.update({
+                        stock: nuevoStock < 0 ? 0 : nuevoStock
+                    });
+
+                    console.log(`✅ Stock actualizado: ${bebida.nombre} -${bebida.cantidad}`);
+                } else {
+                    console.warn(`⚠️ No se encontró en inventario: ${bebida.nombre}`);
+                }
+            }
+        }
+
+        res.json({ message: "Pedido marcado como guardado y stock actualizado" });
 
     } catch (error) {
         console.error("❌ Error al marcar como guardado:", error);
