@@ -1,4 +1,5 @@
 const { db } = require("../config/firebase");
+const { Timestamp } = require("firebase-admin/firestore");
 
 // Obtener pedidos por estado
 async function obtenerPedidosPorEstado(req, res) {
@@ -97,7 +98,8 @@ async function crearPedido(req, res) {
             mesera,
             nota,
             total,
-            fecha: new Date().toISOString(),
+             fecha: Timestamp.fromDate(new Date()),
+            //fecha: new Date().toISOString(),
         };
 
         // Crear el pedido principal en la colección 'pedidos' y obtener el ID del pedido
