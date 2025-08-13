@@ -465,6 +465,51 @@ async function marcarPedidoComoGuardado(req, res) {
 
 
 
+async function obtenerPedidosPorEstadoYFecha(req, res) {
+    const { estado, fecha } = req.params;
+    try {
+        const [year, month, day] = fecha.split("-");
+        const fechaInicio = new Date(year, month - 1, day, 0, 0, 0);
+        const fechaFin = new Date(year, month - 1, day, 23, 59, 59);
+
+        // Firestore guarda tu fecha como Timestamp, así que usaremos rango
+        const snapshot = await db.collection("pedidos")
+            .where("estado", "==", estado)
+            .where("guardado", "==", false)
+            .where("fecha", ">=", fechaInicio)
+            .where("fecha", "<=", fechaFin)
+            .get();
+
+        let pedidos = [];
+
+        for (let doc of snapshot.docs) {
+            const pedidoData = doc.data();
+            const productosSnapshot = await db.collection("pedidos")
+                .doc(doc.id)
+                .collection("productos")
+                .get();
+
+            const productos = productosSnapshot.docs.map(prod => ({
+                id: prod.id,
+                ...prod.data()
+            }));
+
+            pedidos.push({
+                id: doc.id,
+                ...pedidoData,
+                productos
+            });
+        }
+
+        res.json(pedidos);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener pedidos por estado y fecha" });
+    }
+}
+
+
+
 
 
 module.exports = {
@@ -476,5 +521,7 @@ module.exports = {
     marcarPedidoComoEntregado,
     marcarPedidoComoFinalizado,
     obtenerPedidosPorEntrega,
-    marcarPedidoComoGuardado
+    marcarPedidoComoGuardado,
+    obtenerPedidosPorEstadoYFecha
+
 };
