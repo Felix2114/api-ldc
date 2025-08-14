@@ -10,12 +10,15 @@ const {
     marcarPedidoComoFinalizado,
     obtenerPedidosPorEntrega,
     marcarPedidoComoGuardado,
-    obtenerPedidosPorEstadoYFecha
+    obtenerPedidosPorEstadoYFecha,
+    obtenerPedidosGuardadosPorFecha
 
 } = require("../controllers/pedidoController");
 
 // GET /pedidos/estado/pendiente
 router.get("/estado/:estado/fecha/:fecha", obtenerPedidosPorEstadoYFecha);
+
+router.get("/guardados/:fecha", obtenerPedidosGuardadosPorFecha);
 
 router.get("/estado/:estado", obtenerPedidosPorEstado);
 

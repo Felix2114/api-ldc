@@ -512,6 +512,55 @@ async function obtenerPedidosPorEstadoYFecha(req, res) {
 
 
 
+// Obtener pedidos que ya están guardados (guardado = true) por fecha
+async function obtenerPedidosGuardadosPorFecha(req, res) {
+    const { fecha } = req.params;
+
+    try {
+        const [year, month, day] = fecha.split("-");
+        const fechaInicio = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+        const fechaFin = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
+
+        // Traer pedidos donde guardado = true y fecha dentro del rango
+        const snapshot = await db.collection("pedidos")
+            .where("guardado", "==", true)
+            .where("fecha", ">=", fechaInicio)
+            .where("fecha", "<=", fechaFin)
+            .get();
+
+        let pedidos = [];
+
+        for (let doc of snapshot.docs) {
+            const pedidoData = doc.data();
+
+            // Obtener productos de la subcolección
+            const productosSnapshot = await db.collection("pedidos")
+                .doc(doc.id)
+                .collection("productos")
+                .get();
+
+            const productos = productosSnapshot.docs.map(prod => ({
+                id: prod.id,
+                ...prod.data()
+            }));
+
+            pedidos.push({
+                id: doc.id,
+                ...pedidoData,
+                productos
+            });
+        }
+
+        res.json(pedidos);
+    } catch (error) {
+        console.error("Error al obtener pedidos guardados por fecha:", error);
+        res.status(500).json({ error: "Error al obtener pedidos guardados por fecha" });
+    }
+}
+
+
+
+
 
 
 module.exports = {
@@ -524,6 +573,7 @@ module.exports = {
     marcarPedidoComoFinalizado,
     obtenerPedidosPorEntrega,
     marcarPedidoComoGuardado,
-    obtenerPedidosPorEstadoYFecha
+    obtenerPedidosPorEstadoYFecha,
+    obtenerPedidosGuardadosPorFecha
 
 };
