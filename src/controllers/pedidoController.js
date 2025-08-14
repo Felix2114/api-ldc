@@ -67,7 +67,7 @@ async function obtenerPedidosPorEntrega(req, res) {
 }
 
 
-// Crear un nuevo pedido
+// Crear un nuevo pedido /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 async function crearPedido(req, res) {
     try {
         const { mesaId, mesera, nota, productos } = req.body;
@@ -392,7 +392,7 @@ async function marcarPedidoComoFinalizado(req, res) {
 async function marcarPedidoComoGuardado(req, res) {
     try {
         const { id } = req.params;
-        const { metodo_Pago } = req.body;
+        const { metodo_Pago, descuento } = req.body; // 🔹 ahora también recibimos descuento
 
         const pedidoRef = db.collection("pedidos").doc(id);
         const pedidoSnap = await pedidoRef.get();
@@ -401,9 +401,11 @@ async function marcarPedidoComoGuardado(req, res) {
             return res.status(404).json({ error: "Pedido no encontrado" });
         }
 
-        // Actualizar guardado y metodo_Pago
+        // Actualizar guardado, metodo_Pago y descuento
         const updateData = { guardado: true };
         if (metodo_Pago) updateData.metodo_Pago = metodo_Pago;
+        if (descuento) updateData.descuento = descuento; // 🔹 guardamos el descuento si existe
+
         await pedidoRef.update(updateData);
 
         // Obtener productos del pedido
