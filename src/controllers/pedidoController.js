@@ -98,8 +98,8 @@ async function crearPedido(req, res) {
             mesera,
             nota,
             total,
-             fecha: Timestamp.fromDate(new Date()),
-            //fecha: new Date().toISOString(),
+             //fecha: Timestamp.fromDate(new Date()),
+            fecha: new Date().toISOString(),
         };
 
         // Crear el pedido principal en la colección 'pedidos' y obtener el ID del pedido
