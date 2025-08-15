@@ -11,7 +11,8 @@ const {
     obtenerPedidosPorEntrega,
     marcarPedidoComoGuardado,
     obtenerPedidosPorEstadoYFecha,
-    obtenerPedidosGuardadosPorFecha
+    obtenerPedidosGuardadosPorFecha,
+    aplicarDescuento
 
 } = require("../controllers/pedidoController");
 
@@ -41,5 +42,8 @@ router.get("/entregado/pendientes", obtenerPedidosPorEntrega);
 router.put("/:id/finalizar", marcarPedidoComoFinalizado);
 
 router.put("/:id/guardar", marcarPedidoComoGuardado);
+
+router.put("/:id/descuento", aplicarDescuento);
+
 
 module.exports = router;

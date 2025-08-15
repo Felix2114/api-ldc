@@ -1,6 +1,17 @@
 const { db } = require("../config/firebase");
 const { Timestamp } = require("firebase-admin/firestore");
 
+//DESCUENTOS
+const descuentos = {
+    "Descuento Compas": 10,       // $10 de descuento
+    "Descuento Especial": 15,     // $15 de descuento
+    "Descuento Medio": 20,        // $20 de descuento
+    "Descuento Antojitos": 5,     // $5 de descuento
+    "Descuento Boing": 8,         // $8 de descuento
+    "Descuento Coca-Cola": 12     // $12 de descuento
+};
+
+
 // Obtener pedidos por estado
 async function obtenerPedidosPorEstado(req, res) {
     const { estado } = req.params;
@@ -564,6 +575,59 @@ async function obtenerPedidosGuardadosPorFecha(req, res) {
 }
 
 
+// Nuevo endpoint para aplicar descuento
+async function aplicarDescuento(req, res) {
+    const { id } = req.params; // ID del pedido
+    const { descuento } = req.body; // Nombre del descuento seleccionado
+
+    try {
+        // Verificar si el descuento existe
+        if (!descuentos.hasOwnProperty(descuento)) {
+            return res.status(400).json({ error: "Descuento no válido" });
+        }
+
+        // Obtener pedido
+        const pedidoRef = db.collection("pedidos").doc(id);
+        const pedidoSnap = await pedidoRef.get();
+
+        if (!pedidoSnap.exists) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+
+        const pedidoData = pedidoSnap.data();
+
+        // Calcular total original
+        let total = 0;
+        const productosSnapshot = await pedidoRef.collection("productos").get();
+        productosSnapshot.forEach(prod => {
+            const data = prod.data();
+            total += (data.precio || 0) * (data.cantidad || 0);
+        });
+
+        // Aplicar descuento
+        const montoDescuento = descuentos[descuento];
+        const totalConDescuento = Math.max(total - montoDescuento, 0); // Evitar negativos
+
+        // Guardar en Firestore
+        await pedidoRef.update({
+            descuento: descuento,
+            montoDescuento: montoDescuento,
+            total: totalConDescuento
+        });
+
+        res.json({
+            mensaje: "Descuento aplicado correctamente",
+            totalOriginal: total,
+            montoDescuento,
+            totalFinal: totalConDescuento
+        });
+
+    } catch (error) {
+        console.error("Error al aplicar descuento:", error);
+        res.status(500).json({ error: "Error al aplicar descuento" });
+    }
+}
+
 
 
 
@@ -578,6 +642,7 @@ module.exports = {
     obtenerPedidosPorEntrega,
     marcarPedidoComoGuardado,
     obtenerPedidosPorEstadoYFecha,
-    obtenerPedidosGuardadosPorFecha
+    obtenerPedidosGuardadosPorFecha,
+    aplicarDescuento
 
 };
