@@ -3,12 +3,12 @@ const { Timestamp } = require("firebase-admin/firestore");
 
 //DESCUENTOS
 const descuentos = {
-    "Descuento Compas": 10,       // $10 de descuento
-    "Descuento Especial": 15,     // $15 de descuento
-    "Descuento Medio": 20,        // $20 de descuento
-    "Descuento Antojitos": 5,     // $5 de descuento
-    "Descuento Boing": 8,         // $8 de descuento
-    "Descuento Coca-Cola": 12     // $12 de descuento
+    "Descuento Compas": 172,       // $10 de descuento
+    "Descuento Especial": 272,     // $15 de descuento
+    "Descuento Medio": 472,        // $20 de descuento
+    "Descuento Antojitos": 2,     // $5 de descuento
+    "Descuento Boing": 5,         // $8 de descuento
+    "Descuento Coca-Cola": 5     // $12 de descuento
 };
 
 
