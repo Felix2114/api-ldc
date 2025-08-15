@@ -1,16 +1,43 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { db } = require("./config/firebase");  // Asegurar que Firebase está importado
+const { db } = require("./config/firebase"); // Firebase importado
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// =====================
+// CONFIGURAR CORS
+// =====================
+const allowedOrigins = [
+    "http://127.0.0.1:5500", // Local
+    "http://localhost:5500", // Otra variante local
+    "https://restaurante-los-dos-carnales.onrender.com"  // Producción
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("No permitido por CORS"));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+// Asegurar que responda preflight
+app.options("*", cors());
+
+// =====================
+// MIDDLEWARE
+// =====================
 app.use(express.json());
 
-// Importar rutas
+// =====================
+// IMPORTAR RUTAS
+// =====================
 const menuRoutes = require("./routes/menu");
 const pedidosRoutes = require("./routes/pedidos");
 const inventarioRoutes = require("./routes/inventario");
@@ -18,7 +45,6 @@ const ventasRoutes = require("./routes/ventas");
 const mesasRoutes = require("./routes/mesas");
 const authRoutes = require("./routes/auth");
 
-// Definir rutas
 app.use("/menu", menuRoutes);
 app.use("/pedidos", pedidosRoutes);
 app.use("/inventario", inventarioRoutes);
@@ -28,11 +54,16 @@ app.use("/auth", authRoutes);
 
 app.use(express.static("mi-restaurante/api-ldc"));
 
+// =====================
+// RUTA PRINCIPAL
+// =====================
 app.get("/", (req, res) => {
-    res.send(" API funcionando correctamente ");
+    res.send("API funcionando correctamente");
 });
 
-// Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en http://${PORT}`);
+// =====================
+// INICIAR SERVIDOR
+// =====================
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
