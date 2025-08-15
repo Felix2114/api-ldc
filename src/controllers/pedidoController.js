@@ -67,7 +67,7 @@ async function obtenerPedidosPorEntrega(req, res) {
 }
 
 
-// Crear un nuevo pedido /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Crear un nuevo pedido
 async function crearPedido(req, res) {
     try {
         const { mesaId, mesera, nota, productos } = req.body;
@@ -392,7 +392,7 @@ async function marcarPedidoComoFinalizado(req, res) {
 async function marcarPedidoComoGuardado(req, res) {
     try {
         const { id } = req.params;
-        const { metodo_Pago, descuento } = req.body; // 🔹 ahora también recibimos descuento
+        const { metodo_Pago } = req.body;
 
         const pedidoRef = db.collection("pedidos").doc(id);
         const pedidoSnap = await pedidoRef.get();
@@ -401,11 +401,9 @@ async function marcarPedidoComoGuardado(req, res) {
             return res.status(404).json({ error: "Pedido no encontrado" });
         }
 
-        // Actualizar guardado, metodo_Pago y descuento
+        // Actualizar guardado y metodo_Pago
         const updateData = { guardado: true };
         if (metodo_Pago) updateData.metodo_Pago = metodo_Pago;
-        if (descuento) updateData.descuento = descuento; // 🔹 guardamos el descuento si existe
-
         await pedidoRef.update(updateData);
 
         // Obtener productos del pedido
@@ -473,10 +471,14 @@ async function obtenerPedidosPorEstadoYFecha(req, res) {
     const { estado, fecha } = req.params;
     try {
         const [year, month, day] = fecha.split("-");
-        const fechaInicio = new Date(year, month - 1, day, 0, 0, 0);
-        const fechaFin = new Date(year, month - 1, day, 23, 59, 59);
 
-        // Firestore guarda tu fecha como Timestamp, así que usaremos rango
+        const fechaInicio = Timestamp.fromDate(
+            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
+        );
+        const fechaFin = Timestamp.fromDate(
+            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59)
+        );
+
         const snapshot = await db.collection("pedidos")
             .where("estado", "==", estado)
             .where("guardado", "==", false)
@@ -512,18 +514,21 @@ async function obtenerPedidosPorEstadoYFecha(req, res) {
     }
 }
 
-
-
 // Obtener pedidos que ya están guardados (guardado = true) por fecha
+
 async function obtenerPedidosGuardadosPorFecha(req, res) {
     const { fecha } = req.params;
 
     try {
         const [year, month, day] = fecha.split("-");
-        const fechaInicio = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
-        const fechaFin = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
 
-        // Traer pedidos donde guardado = true y fecha dentro del rango
+        const fechaInicio = Timestamp.fromDate(
+            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
+        );
+        const fechaFin = Timestamp.fromDate(
+            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59)
+        );
+
         const snapshot = await db.collection("pedidos")
             .where("guardado", "==", true)
             .where("fecha", ">=", fechaInicio)
@@ -534,8 +539,6 @@ async function obtenerPedidosGuardadosPorFecha(req, res) {
 
         for (let doc of snapshot.docs) {
             const pedidoData = doc.data();
-
-            // Obtener productos de la subcolección
             const productosSnapshot = await db.collection("pedidos")
                 .doc(doc.id)
                 .collection("productos")
@@ -559,7 +562,6 @@ async function obtenerPedidosGuardadosPorFecha(req, res) {
         res.status(500).json({ error: "Error al obtener pedidos guardados por fecha" });
     }
 }
-
 
 
 
