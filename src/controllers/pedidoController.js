@@ -486,18 +486,17 @@ async function marcarPedidoComoGuardado(req, res) {
     }
 }
 
-
-
 async function obtenerPedidosPorEstadoYFecha(req, res) {
     const { estado, fecha } = req.params;
     try {
         const [year, month, day] = fecha.split("-");
 
+        // Usar hora local en vez de UTC
         const fechaInicio = Timestamp.fromDate(
-            new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0))
+            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
         );
         const fechaFin = Timestamp.fromDate(
-            new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59))
+            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59)
         );
 
         const snapshot = await db.collection("pedidos")
@@ -534,6 +533,7 @@ async function obtenerPedidosPorEstadoYFecha(req, res) {
         res.status(500).json({ error: "Error al obtener pedidos por estado y fecha" });
     }
 }
+
 
 // Obtener pedidos que ya están guardados (guardado = true) por fecha
 
