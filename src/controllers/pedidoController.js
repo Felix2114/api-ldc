@@ -77,7 +77,6 @@ async function obtenerPedidosPorEntrega(req, res) {
     }
 }
 
-
 // Crear un nuevo pedido
 async function crearPedido(req, res) {
     try {
@@ -102,6 +101,17 @@ async function crearPedido(req, res) {
             total += prod.subtotal;
         }
 
+        // 📌 Generar fecha en UTC
+        const ahora = new Date();
+        const fechaUTC = new Date(Date.UTC(
+            ahora.getUTCFullYear(),
+            ahora.getUTCMonth(),
+            ahora.getUTCDate(),
+            ahora.getUTCHours(),
+            ahora.getUTCMinutes(),
+            ahora.getUTCSeconds()
+        ));
+
         // Ahora, creamos el pedido principal
         const nuevoPedido = {
             mesaId,
@@ -109,8 +119,8 @@ async function crearPedido(req, res) {
             mesera,
             nota,
             total,
-             fecha: Timestamp.fromDate(new Date()),
-            //fecha: new Date().toISOString(),
+            fecha: Timestamp.fromDate(fechaUTC), // ✅ siempre en UTC
+            guardado: false // ✅ importante para tu filtro
         };
 
         // Crear el pedido principal en la colección 'pedidos' y obtener el ID del pedido
@@ -120,24 +130,23 @@ async function crearPedido(req, res) {
             return res.status(500).json({ error: "No se pudo generar el ID del pedido" });
         }
 
-      const mesaSnapshot = await db.collection("mesas")
-    .where("numero", "==", parseInt(mesaId))
-    .limit(1)
-    .get();
+        // 📌 Actualizar disponibilidad de mesa
+        const mesaSnapshot = await db.collection("mesas")
+            .where("numero", "==", parseInt(mesaId))
+            .limit(1)
+            .get();
 
-if (!mesaSnapshot.empty) {
-    const mesaDoc = mesaSnapshot.docs[0];
-    await mesaDoc.ref.update({ disponible: false }); // o true según el caso
-} else {
-    console.warn(`⚠️ No se encontró ninguna mesa con numero ${mesaId}`);
-}
-
+        if (!mesaSnapshot.empty) {
+            const mesaDoc = mesaSnapshot.docs[0];
+            await mesaDoc.ref.update({ disponible: false });
+        } else {
+            console.warn(`⚠️ No se encontró ninguna mesa con numero ${mesaId}`);
+        }
 
         // Después de crear el pedido, agregamos los productos a la subcolección
         for (let prod of productos) {
-            const productoDocRef = db.collection("pedidos").doc(pedidoRef.id).collection("productos").doc(); // Esto crea un nuevo documento en la subcolección
-            productosBatch.push(
-                productoDocRef.set(prod)); // Usamos `set` para agregar el producto
+            const productoDocRef = db.collection("pedidos").doc(pedidoRef.id).collection("productos").doc();
+            productosBatch.push(productoDocRef.set(prod));
         }
 
         // Esperar a que todos los productos sean agregados a la subcolección
@@ -150,6 +159,7 @@ if (!mesaSnapshot.empty) {
         res.status(500).json({ error: "Error al crear el pedido" });
     }
 }
+
 
 // Confirmar pedido (cambiar estado a "listo")
 async function confirmarPedido(req, res) {
