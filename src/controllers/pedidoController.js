@@ -484,10 +484,10 @@ async function obtenerPedidosPorEstadoYFecha(req, res) {
         const [year, month, day] = fecha.split("-");
 
         const fechaInicio = Timestamp.fromDate(
-            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
+            new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0))
         );
         const fechaFin = Timestamp.fromDate(
-            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59)
+            new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59))
         );
 
         const snapshot = await db.collection("pedidos")
