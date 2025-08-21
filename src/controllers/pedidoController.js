@@ -113,13 +113,15 @@ async function crearPedido(req, res) {
         ));
 
         // Ahora, creamos el pedido principal
+        const hoy = new Date();
+        const fechaStr = hoy.toISOString().split("T")[0]; // "2025-08-21"
         const nuevoPedido = {
             mesaId,
             estado: "pendiente",
             mesera,
             nota,
             total,
-            fecha: Timestamp.fromDate(fechaUTC), // ✅ siempre en UTC
+            fecha: fechaStr,
             guardado: false // ✅ importante para tu filtro
         };
 
@@ -485,25 +487,13 @@ async function marcarPedidoComoGuardado(req, res) {
         res.status(500).json({ error: "Error al marcar el pedido como guardado" });
     }
 }
-
 async function obtenerPedidosPorEstadoYFecha(req, res) {
     const { estado, fecha } = req.params;
     try {
-        const [year, month, day] = fecha.split("-");
-
-        // Usar hora local en vez de UTC
-        const fechaInicio = Timestamp.fromDate(
-            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
-        );
-        const fechaFin = Timestamp.fromDate(
-            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59)
-        );
-
         const snapshot = await db.collection("pedidos")
             .where("estado", "==", estado)
             .where("guardado", "==", false)
-            .where("fecha", ">=", fechaInicio)
-            .where("fecha", "<=", fechaFin)
+            .where("fecha", "==", fecha) // 👈 comparar directo como string
             .get();
 
         let pedidos = [];
@@ -536,24 +526,13 @@ async function obtenerPedidosPorEstadoYFecha(req, res) {
 
 
 // Obtener pedidos que ya están guardados (guardado = true) por fecha
-
 async function obtenerPedidosGuardadosPorFecha(req, res) {
     const { fecha } = req.params;
 
     try {
-        const [year, month, day] = fecha.split("-");
-
-        const fechaInicio = Timestamp.fromDate(
-            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
-        );
-        const fechaFin = Timestamp.fromDate(
-            new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59)
-        );
-
         const snapshot = await db.collection("pedidos")
             .where("guardado", "==", true)
-            .where("fecha", ">=", fechaInicio)
-            .where("fecha", "<=", fechaFin)
+            .where("fecha", "==", fecha) // 👈 directo como string
             .get();
 
         let pedidos = [];
