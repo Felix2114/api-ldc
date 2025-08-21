@@ -435,7 +435,6 @@ async function marcarPedidoComoGuardado(req, res) {
 
         for (const prod of productos) {
             let bebidasADescontar = [];
-
             const nombreProd = prod.nombre.toUpperCase();
 
             if (nombreProd.includes("MICHELADA")) {
@@ -450,6 +449,20 @@ async function marcarPedidoComoGuardado(req, res) {
                         cantidad: cantidadBase * prod.cantidad
                     });
                 }
+
+            } else if (nombreProd.includes("CARTON VICTORIA")) {
+                // Un cartón son 24 unidades
+                bebidasADescontar.push({
+                    nombre: "VICTORIA",
+                    cantidad: 24 * prod.cantidad
+                });
+
+            } else if (nombreProd.includes("CARTON CORONA")) {
+                bebidasADescontar.push({
+                    nombre: "CORONA",
+                    cantidad: 24 * prod.cantidad
+                });
+
             } else {
                 bebidasADescontar.push({
                     nombre: prod.nombre,
@@ -487,6 +500,7 @@ async function marcarPedidoComoGuardado(req, res) {
         res.status(500).json({ error: "Error al marcar el pedido como guardado" });
     }
 }
+
 async function obtenerPedidosPorEstadoYFecha(req, res) {
     const { estado, fecha } = req.params;
     try {
