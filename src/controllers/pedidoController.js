@@ -577,18 +577,11 @@ async function obtenerPedidosGuardadosPorFecha(req, res) {
     }
 }
 
-
-// Nuevo endpoint para aplicar descuento
 async function aplicarDescuento(req, res) {
-    const { id } = req.params; // ID del pedido
-    const { descuento } = req.body; // Nombre del descuento seleccionado
+    const { id } = req.params;
+    const { descuento } = req.body; // Puede ser cadena (clave) o número
 
     try {
-        // Verificar si el descuento existe
-        if (!descuentos.hasOwnProperty(descuento)) {
-            return res.status(400).json({ error: "Descuento no válido" });
-        }
-
         // Obtener pedido
         const pedidoRef = db.collection("pedidos").doc(id);
         const pedidoSnap = await pedidoRef.get();
@@ -607,13 +600,25 @@ async function aplicarDescuento(req, res) {
             total += (data.precio || 0) * (data.cantidad || 0);
         });
 
-        // Aplicar descuento
-        const montoDescuento = descuentos[descuento];
-        const totalConDescuento = Math.max(total - montoDescuento, 0); // Evitar negativos
+        let montoDescuento = 0;
+
+        // 📌 Caso 1: descuento es numérico (manual)
+        if (!isNaN(descuento)) {
+            montoDescuento = parseFloat(descuento);
+        } 
+        // 📌 Caso 2: descuento es una clave en el objeto
+        else if (descuentos.hasOwnProperty(descuento)) {
+            montoDescuento = descuentos[descuento];
+        } else {
+            return res.status(400).json({ error: "Descuento no válido" });
+        }
+
+        // Calcular nuevo total
+        const totalConDescuento = Math.max(total - montoDescuento, 0);
 
         // Guardar en Firestore
         await pedidoRef.update({
-            descuento: descuento,
+            descuento: descuento,        // guarda lo que el cliente escribió o seleccionó
             montoDescuento: montoDescuento,
             total: totalConDescuento
         });
@@ -630,6 +635,7 @@ async function aplicarDescuento(req, res) {
         res.status(500).json({ error: "Error al aplicar descuento" });
     }
 }
+
 
 
 
