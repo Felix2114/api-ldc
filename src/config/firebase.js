@@ -1,21 +1,11 @@
-const admin = require("firebase-admin");
+import admin from "firebase-admin";
 
-if (!process.env.FIREBASE_CONFIG_JSON) {
-  throw new Error("❌ FIREBASE_CONFIG_JSON no está definida en Render");
-}
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  }),
+});
 
-const serviceAccount = JSON.parse(
-  process.env.FIREBASE_CONFIG_JSON.replace(/\\n/g, "\n")
-);
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    // ⚠️ SOLO si usas Realtime DB
-    // databaseURL: "https://l-d-c-2025-default-rtdb.firebaseio.com"
-  });
-}
-
-const db = admin.firestore();
-
-module.exports = { admin, db };
+export const db = admin.firestore();
