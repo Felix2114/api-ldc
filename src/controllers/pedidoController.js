@@ -92,32 +92,42 @@ async function crearPedido(req, res) {
         const productosFinales = [];
 
         // 🔹 Validar productos y calcular total
-        for (const prod of productos) {
+      // Busca esta sección dentro de async function crearPedido(req, res)
+// 🔹 Validar productos y calcular total
+for (const prod of productos) {
     console.log(" Producto recibido:", prod);
 
     if (!prod.nombre || !prod.cantidad) {
-        return res.status(400).json({
-            error: "Producto inválido",
-            producto: prod
-        });
+        return res.status(400).json({ error: "Producto inválido", producto: prod });
     }
 
-    // 🔍 Buscar producto por nombre en el menú
-    const snap = await db
-        .collection("menu")
+    let data;
+    
+    // 1️⃣ Intentar buscar primero en el MENÚ (Comida)
+    const snapMenu = await db.collection("menu")
         .where("nombre", "==", prod.nombre)
         .limit(1)
         .get();
 
-    if (snap.empty) {
-        return res.status(400).json({
-            error: `Producto no encontrado en menú: ${prod.nombre}`
-        });
+    if (!snapMenu.empty) {
+        data = snapMenu.docs[0].data();
+    } else {
+        // 2️⃣ Si no está en el menú, buscar en INVENTARIO (Bebidas)
+        const snapInv = await db.collection("inventario")
+            .where("nombre", "==", prod.nombre)
+            .limit(1)
+            .get();
+
+        if (snapInv.empty) {
+            // Si no está en ninguno de los dos, lanzamos el error
+            return res.status(400).json({
+                error: `Producto no encontrado en Menú ni en Inventario: ${prod.nombre}`
+            });
+        }
+        data = snapInv.docs[0].data();
     }
 
-    const menuDoc = snap.docs[0];
-    const data = menuDoc.data();
-
+    // Calculamos subtotal usando el precio encontrado (ya sea de menú o inventario)
     const subtotal = data.precio * prod.cantidad;
     total += subtotal;
 
