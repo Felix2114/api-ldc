@@ -1,5 +1,6 @@
 
 const { db } = require("../config/firebase");
+const BebidaDTO = require("../dto/BebidaDTO");
 
 // Obtener todas las bebidas del inventario
 async function obtenerInventario(req, res) {
@@ -16,23 +17,30 @@ async function obtenerInventario(req, res) {
 // Agregar una nueva bebida
 async function agregarBebida(req, res) {
     try {
-        const { nombre, stock, precio } = req.body;
-        if (!nombre || stock < 0 || precio <= 0) {
-            return res.status(400).json({ error: "Datos inválidos" });
-        }
-        const docRef = await db.collection("inventario").add({ nombre, stock, precio });
-        res.json({ id: docRef.id, nombre, stock, precio });
+       // console.log("Datos recibidos:", req.body); // Para debug
+        const bebidaDTO = new BebidaDTO(req.body);
+
+        const docRef = await db
+            .collection("inventario")
+            .add(bebidaDTO.toJSON());
+
+        res.status(201).json({
+            id: docRef.id,
+            ...bebidaDTO.toJSON()
+        });
     } catch (error) {
-        res.status(500).json({ error: "Error al agregar la bebida" });
+        // Esto te dirá en la consola del servidor si el error es del DTO
+        console.error("❌ Error en DTO o Firebase:", error.message);
+        res.status(400).json({ error: error.message });
     }
 }
-
 // Actualizar una bebida en el inventario
 async function actualizarBebida(req, res) {
     try {
+        const bebidaDTO = new BebidaDTO(req.body);
         const { id } = req.params;
-        const { nombre, stock, precio } = req.body;
-        await db.collection("inventario").doc(id).update({ nombre, stock, precio });
+      
+        await db.collection("inventario").doc(id).update(bebidaDTO.toJSON());
         res.json({ mensaje: "Bebida actualizada correctamente" });
     } catch (error) {
         res.status(500).json({ error: "Error al actualizar la bebida" });
@@ -50,9 +58,26 @@ async function eliminarBebida(req, res) {
     }
 }
 
+
+async function cambiarEstadoBebida(req, res) {
+    try {
+        const { id } = req.params;
+        const { activo } = req.body; // Recibe true o false
+
+        await db.collection("inventario").doc(id).update({
+            activo: activo
+        });
+
+        res.json({ mensaje: `Bebida ${activo ? 'habilitada' : 'deshabilitada'}` });
+    } catch (error) {
+        res.status(500).json({ error: "Error al cambiar el estado" });
+    }
+}
+
 module.exports = {
     obtenerInventario,
     agregarBebida,
     actualizarBebida,
-    eliminarBebida
+    eliminarBebida,
+    cambiarEstadoBebida
 };

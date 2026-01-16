@@ -1,5 +1,7 @@
 const { db } = require("../config/firebase");
 const { Timestamp } = require("firebase-admin/firestore");
+const { actualizarInventarioBebida } = require("../services/inventario.service");
+
 
 //DESCUENTOS
 const descuentos = {
@@ -80,87 +82,119 @@ async function obtenerPedidosPorEntrega(req, res) {
 // Crear un nuevo pedido
 async function crearPedido(req, res) {
     try {
-        const { mesaId, mesera, nota, productos } = req.body;
+        const { mesaId, mesera, cliente, nota, productos } = req.body;
 
-        if (!productos || productos.length === 0) {
-            return res.status(400).json({ error: "El pedido debe tener al menos un producto" });
+        if (!mesaId || !productos || productos.length === 0) {
+            return res.status(400).json({ error: "Datos incompletos" });
         }
 
         let total = 0;
-        const productosBatch = [];
+        const productosFinales = [];
 
-        // Primero, obtenemos los productos y calculamos el total
-        for (let prod of productos) {
-            const productoRef = await db.collection("menu").doc(prod.comidaId.toString()).get();
-            if (!productoRef.exists) {
-                return res.status(400).json({ error: `Producto ${prod.comidaId} no encontrado en el menú` });
-            }
-            const producto = productoRef.data();
-            prod.precio = producto.precio;
-            prod.subtotal = prod.precio * prod.cantidad;
-            total += prod.subtotal;
-        }
+        // 🔹 Validar productos y calcular total
+        for (const prod of productos) {
+    console.log(" Producto recibido:", prod);
 
-        // 📌 Generar fecha en UTC
+    if (!prod.nombre || !prod.cantidad) {
+        return res.status(400).json({
+            error: "Producto inválido",
+            producto: prod
+        });
+    }
+
+    // 🔍 Buscar producto por nombre en el menú
+    const snap = await db
+        .collection("menu")
+        .where("nombre", "==", prod.nombre)
+        .limit(1)
+        .get();
+
+    if (snap.empty) {
+        return res.status(400).json({
+            error: `Producto no encontrado en menú: ${prod.nombre}`
+        });
+    }
+
+    const menuDoc = snap.docs[0];
+    const data = menuDoc.data();
+
+    const subtotal = data.precio * prod.cantidad;
+    total += subtotal;
+
+    productosFinales.push({
+        nombre: data.nombre,
+        cantidad: prod.cantidad,
+        precio: data.precio,
+        subtotal
+    });
+}
+
+
+     
+        // 🔹 Fechas locales
         const ahora = new Date();
-        const fechaUTC = new Date(Date.UTC(
-            ahora.getUTCFullYear(),
-            ahora.getUTCMonth(),
-            ahora.getUTCDate(),
-            ahora.getUTCHours(),
-            ahora.getUTCMinutes(),
-            ahora.getUTCSeconds()
-        ));
+        const fecha = ahora.toISOString().split("T")[0];
+        const fechaCompleta = ahora.toLocaleString("es-MX");
 
-        // Ahora, creamos el pedido principal
-        const hoy = new Date();
-        const fechaStr = hoy.toISOString().split("T")[0]; // "2025-08-21"
-        const nuevoPedido = {
-            mesaId,
-            estado: "pendiente",
+        // 🔹 Crear pedido
+        const pedido = {
+            mesaId: mesaId.toString(),
             mesera,
+            cliente,
             nota,
             total,
-            fecha: fechaStr,
-            guardado: false // ✅ importante para tu filtro
+            estado: "pendiente",
+           // entregado: false,
+            guardado: false,
+            descuento: "",
+            metodo_Pago: "",
+            fecha,
+            fechaCompleta
         };
 
-        // Crear el pedido principal en la colección 'pedidos' y obtener el ID del pedido
-        const pedidoRef = await db.collection("pedidos").add(nuevoPedido);
+        const pedidoRef = await db.collection("pedidos").add(pedido);
 
-        if (!pedidoRef.id) {
-            return res.status(500).json({ error: "No se pudo generar el ID del pedido" });
-        }
+        // 🔹 Guardar productos (batch)
+        const batch = db.batch();
 
-        // 📌 Actualizar disponibilidad de mesa
-        const mesaSnapshot = await db.collection("mesas")
+        productosFinales.forEach(prod => {
+            const ref = pedidoRef.collection("productos").doc();
+            batch.set(ref, prod);
+        });
+
+        await batch.commit();
+
+        // 🔥 ACTUALIZAR INVENTARIO (fuera del batch)
+        await Promise.all(
+            productosFinales.map(prod =>
+                actualizarInventarioBebida(prod.nombre, prod.cantidad)
+            )
+        );
+
+        // 🔹 Ocupar mesa
+        const mesaSnap = await db.collection("mesas")
             .where("numero", "==", parseInt(mesaId))
             .limit(1)
             .get();
 
-        if (!mesaSnapshot.empty) {
-            const mesaDoc = mesaSnapshot.docs[0];
-            await mesaDoc.ref.update({ disponible: false });
-        } else {
-            console.warn(`⚠️ No se encontró ninguna mesa con numero ${mesaId}`);
+        if (!mesaSnap.empty) {
+            await mesaSnap.docs[0].ref.update({ disponible: false });
         }
 
-        // Después de crear el pedido, agregamos los productos a la subcolección
-        for (let prod of productos) {
-            const productoDocRef = db.collection("pedidos").doc(pedidoRef.id).collection("productos").doc();
-            productosBatch.push(productoDocRef.set(prod));
-        }
+        res.status(201).json({
+            ok: true,
+            pedidoId: pedidoRef.id,
+            folio
+        });
 
-        // Esperar a que todos los productos sean agregados a la subcolección
-        await Promise.all(productosBatch);
-
-        // Devolvemos la respuesta con los datos del pedido y productos
-        res.status(201).json({ id: pedidoRef.id, ...nuevoPedido, productos });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error al crear el pedido" });
+        console.error("❌ Error API pedido:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 }
+
+
+
 
 
 // Confirmar pedido (cambiar estado a "listo")

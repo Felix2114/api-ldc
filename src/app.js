@@ -23,7 +23,7 @@ app.use(cors({
             callback(new Error("No permitido por CORS"));
         }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
@@ -40,10 +40,12 @@ app.use(express.json());
 // =====================
 const menuRoutes = require("./routes/menu");
 const pedidosRoutes = require("./routes/pedidos");
-const inventarioRoutes = require("./routes/inventario");
+const inventarioRoutes = require("./routes/inventarioRoutes");
 const ventasRoutes = require("./routes/ventas");
 const mesasRoutes = require("./routes/mesas");
 const authRoutes = require("./routes/auth");
+const tipoBebidasRoutes = require("./routes/tipoBebidasRoutes");
+
 
 app.use("/menu", menuRoutes);
 app.use("/pedidos", pedidosRoutes);
@@ -51,6 +53,8 @@ app.use("/inventario", inventarioRoutes);
 app.use("/ventas", ventasRoutes);
 app.use("/mesas", mesasRoutes);
 app.use("/auth", authRoutes);
+app.use("/tipoBebidas", tipoBebidasRoutes);
+
 
 app.use(express.static("mi-restaurante/api-ldc"));
 
@@ -58,7 +62,7 @@ app.use(express.static("mi-restaurante/api-ldc"));
 // RUTA PRINCIPAL
 // =====================
 app.get("/", (req, res) => {
-    res.send("API funcionando correctamente");
+    res.send("API dos car funcionando correctamente");
 });
 
 // =====================
