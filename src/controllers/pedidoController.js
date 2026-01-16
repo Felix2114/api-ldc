@@ -183,8 +183,7 @@ async function crearPedido(req, res) {
 
         res.status(201).json({
             ok: true,
-            pedidoId: pedidoRef.id,
-            folio
+            pedidoId: pedidoRef.id
         });
 
     } catch (error) {
