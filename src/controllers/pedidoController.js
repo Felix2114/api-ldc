@@ -141,12 +141,16 @@ for (const prod of productos) {
 
 
      
-        // 🔹 Fechas locales
-        const ahora = new Date();
-        const fecha = ahora.toISOString().split("T")[0];
-        const fechaCompleta = ahora.toLocaleString("es-MX");
+      // 🔹 Obtener fecha y hora exacta de Veracruz, México
+        const opciones = { timeZone: "America/Mexico_City", year: "numeric", month: "2-digit", day: "2-digit" };
+        const opcionesFull = { ...opciones, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true };
 
-        // 🔹 Crear pedido
+        // Formato YYYY-MM-DD para búsquedas (fecha)
+        const fechaMexico = new Intl.DateTimeFormat("en-CA", opciones).format(new Date()); 
+        // Formato legible para el ticket (fechaCompleta)
+        const fechaCompletaMexico = new Intl.DateTimeFormat("es-MX", opcionesFull).format(new Date());
+
+        // 🔹 Crear objeto del pedido
         const pedido = {
             mesaId: mesaId.toString(),
             mesera,
@@ -154,16 +158,14 @@ for (const prod of productos) {
             nota,
             total,
             estado: "pendiente",
-           // entregado: false,
             guardado: false,
             descuento: "",
             metodo_Pago: "",
-            fecha,
-            fechaCompleta
+            fecha: fechaMexico,          // Saldrá como "2025-01-16"
+            fechaCompleta: fechaCompletaMexico // Saldrá como "16/01/2025, 07:43:00 p. m."
         };
 
         const pedidoRef = await db.collection("pedidos").add(pedido);
-
         // 🔹 Guardar productos (batch)
         const batch = db.batch();
 
