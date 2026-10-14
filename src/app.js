@@ -43,6 +43,7 @@ const pedidosRoutes = require("./routes/pedidos");
 const inventarioRoutes = require("./routes/inventarioRoutes");
 const ventasRoutes = require("./routes/ventas");
 const mesasRoutes = require("./routes/mesas");
+const meserasRoutes = require("./routes/meseras");
 const authRoutes = require("./routes/auth");
 const tipoBebidasRoutes = require("./routes/tipoBebidasRoutes");
 
@@ -52,6 +53,7 @@ app.use("/pedidos", pedidosRoutes);
 app.use("/inventario", inventarioRoutes);
 app.use("/ventas", ventasRoutes);
 app.use("/mesas", mesasRoutes);
+app.use("/meseras", meserasRoutes);
 app.use("/auth", authRoutes);
 app.use("/tipoBebidas", tipoBebidasRoutes);
 

@@ -12,6 +12,7 @@ const {
     marcarPedidoComoGuardado,
     obtenerPedidosPorEstadoYFecha,
     obtenerPedidosGuardadosPorFecha,
+    obtenerAnalisisVentasDias,
     aplicarDescuento
 
 } = require("../controllers/pedidoController");
@@ -20,6 +21,8 @@ const {
 router.get("/estado/:estado/fecha/:fecha", obtenerPedidosPorEstadoYFecha);
 
 router.get("/guardados/:fecha", obtenerPedidosGuardadosPorFecha);
+
+router.get("/analisis/dias", obtenerAnalisisVentasDias);
 
 router.get("/estado/:estado", obtenerPedidosPorEstado);
 
